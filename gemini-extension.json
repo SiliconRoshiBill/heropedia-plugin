@@ -1,0 +1,10 @@
+{
+  "name": "heropedia",
+  "version": "0.1.1",
+  "description": "Consult 324+ hand-crafted expert personas (Warren Buffett, Steve Jobs, Charlie Munger, Linus Torvalds, and more) from Gemini CLI via the Heropedia MCP server. Four read-only tools: getList, getListByHero, getListByRole, getDetail.",
+  "mcpServers": {
+    "heropedia": {
+      "httpUrl": "https://www.heropedia.org/mcp"
+    }
+  }
+}
