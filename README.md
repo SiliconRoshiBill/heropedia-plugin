@@ -11,11 +11,14 @@ The plugin does not ship any data. All 324+ personas live at [heropedia.org](htt
 
 ## Install
 
+Two commands. The first registers this repo as a marketplace; the second installs the plugin from it.
+
 ```bash
-claude plugin add https://github.com/SiliconRoshiBill/heropedia-plugin
+claude plugin marketplace add https://github.com/SiliconRoshiBill/heropedia-plugin
+claude plugin install heropedia@heropedia
 ```
 
-That's it. Restart Claude Code (or open a new session) and you're wired up.
+That's it. The plugin auto-registers the MCP server (`plugin:heropedia:heropedia`) on install — no separate `claude mcp add` needed. Open a new session and you're wired up.
 
 ## Try it
 
@@ -72,7 +75,7 @@ User guide with install snippets, examples, and FAQ: [heropedia.org/mcp-guide](h
 ## Uninstall
 
 ```bash
-claude plugin remove heropedia
+claude plugin uninstall heropedia
 ```
 
 ## License
