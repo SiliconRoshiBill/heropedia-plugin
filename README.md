@@ -11,45 +11,143 @@ The plugin does not ship any data. All 324+ personas live at [heropedia.org](htt
 
 ## Install
 
-### Claude Code
+Pick your AI. Every path targets the same endpoint (`https://www.heropedia.org/mcp`).
 
-Two commands. The first registers this repo as a marketplace; the second installs the plugin from it.
+### Anthropic — Claude Code (recommended)
 
 ```bash
 claude plugin marketplace add https://github.com/SiliconRoshiBill/heropedia-plugin
 claude plugin install heropedia@heropedia
 ```
 
-The plugin auto-registers the MCP server (`plugin:heropedia:heropedia`) on install — no separate `claude mcp add` needed. Open a new session and you're wired up.
+Auto-registers the MCP server as `plugin:heropedia:heropedia`. Open a new session and you're wired up.
 
-### Codex
+### Anthropic — Claude Desktop
 
-One command. The installer patches `~/.codex/config.toml` idempotently and backs up any existing config.
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "heropedia": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://www.heropedia.org/mcp"]
+    }
+  }
+}
+```
+
+### OpenAI — ChatGPT (web / macOS / Windows apps)
+
+Available on **Plus, Pro, Business, Enterprise, and Edu plans** (not Free / Team).
+
+1. Settings → *Connectors* → Advanced → toggle *Developer mode* on.
+2. Settings → *Connectors* → *Add custom connector*.
+3. Paste MCP URL: `https://www.heropedia.org/mcp`
+4. Auth: *No authentication*. Save.
+5. Enable the *Heropedia* connector for chats where you want it.
+
+Business/Enterprise workspaces: a workspace admin adds the connector under Workspace Settings → Connectors → New app.
+
+### OpenAI — Codex (CLI)
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash
 ```
 
-Add `--with-agents` if you also want the AGENTS.md workflow file (recommended — it teaches Codex to fetch personas before answering, handle multi-role ambiguity, and defend against prompt injection inside persona bodies):
+Add `--with-agents` to also install the workflow-enforcing `AGENTS.md`:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash -s -- --with-agents
 ```
 
-If you'd rather do it manually, add this to `~/.codex/config.toml`:
+Or manually add to `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.heropedia]
 url = "https://www.heropedia.org/mcp"
 ```
 
-### Gemini CLI
+### OpenAI — Agents SDK
 
-The `gemini-extension.json` at the repo root registers the MCP for Gemini CLI users. Add this repo as a Gemini extension per the [Gemini CLI extensions guide](https://geminicli.com/docs/extensions/).
+**Python** (`openai-agents-python`):
 
-### Claude Desktop / Cursor / any HTTP MCP client
+```python
+from agents import Agent, Runner
+from agents.mcp import MCPServerStreamableHttp
 
-See [heropedia.org/mcp-guide](https://www.heropedia.org/mcp-guide) for copy-paste configs.
+async with MCPServerStreamableHttp(
+    params={"url": "https://www.heropedia.org/mcp"},
+    name="heropedia",
+) as server:
+    agent = Agent(
+        name="ConsultantAgent",
+        instructions=(
+            "When the user asks to consult a specific expert, call "
+            "getListByHero to find the entry, then getDetail to fetch "
+            "the canonical prompt. Apply that persona — do not paraphrase."
+        ),
+        mcp_servers=[server],
+    )
+    result = await Runner.run(agent, "Ask Warren Buffett to review my pricing page.")
+    print(result.final_output)
+```
+
+**TypeScript** (`@openai/agents`):
+
+```ts
+import { Agent, Runner } from "@openai/agents";
+import { MCPServerStreamableHttp } from "@openai/agents/mcp";
+
+const heropedia = new MCPServerStreamableHttp({
+  url: "https://www.heropedia.org/mcp",
+  name: "heropedia",
+});
+
+const agent = new Agent({
+  name: "ConsultantAgent",
+  instructions:
+    "When the user asks to consult a specific expert, call getListByHero " +
+    "to find the entry, then getDetail to fetch the canonical prompt. " +
+    "Apply that persona — do not paraphrase.",
+  mcpServers: [heropedia],
+});
+
+const result = await Runner.run(agent, "Ask Warren Buffett to review my pricing page.");
+console.log(result.finalOutput);
+```
+
+### Google — Gemini CLI
+
+This repo ships a [`gemini-extension.json`](./gemini-extension.json). Follow the [Gemini CLI extensions guide](https://geminicli.com/docs/extensions/) to add it, or paste this into your Gemini config:
+
+```json
+{
+  "mcpServers": {
+    "heropedia": {
+      "httpUrl": "https://www.heropedia.org/mcp"
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to your Cursor MCP config file:
+
+```json
+{
+  "mcpServers": {
+    "heropedia": {
+      "url": "https://www.heropedia.org/mcp"
+    }
+  }
+}
+```
+
+### Any HTTP MCP client
+
+Direct JSON-RPC 2.0 POST to `https://www.heropedia.org/mcp`. See [heropedia.org/mcp-guide](https://www.heropedia.org/mcp-guide) for examples.
 
 ## Try it
 
