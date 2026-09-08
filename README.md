@@ -67,8 +67,7 @@ Public HTTP MCP server at `https://www.heropedia.org/mcp` speaking [MCP 2025-06-
 
 Returns lightweight metadata (`{id, hero_name, role_name, description}`) from LIST tools; only `getDetail` returns the full persona prompt.
 
-Full API docs: [heropedia-app/docs/mcp/README.md](https://github.com/SiliconRoshiBill/heropedia-app/blob/main/docs/mcp/README.md)
-User guide with examples: [heropedia.org/mcp-guide](https://www.heropedia.org/mcp-guide)
+User guide with install snippets, examples, and FAQ: [heropedia.org/mcp-guide](https://www.heropedia.org/mcp-guide)
 
 ## Uninstall
 
