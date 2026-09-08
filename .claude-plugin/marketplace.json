@@ -1,0 +1,36 @@
+{
+  "name": "heropedia",
+  "owner": {
+    "name": "SiliconRoshiBill",
+    "url": "https://github.com/SiliconRoshiBill"
+  },
+  "metadata": {
+    "description": "Consult 324+ hand-crafted expert personas via the Heropedia MCP server, directly from Claude Code.",
+    "version": "0.1.2"
+  },
+  "plugins": [
+    {
+      "name": "heropedia",
+      "description": "Consult 324+ hand-crafted expert personas (Warren Buffett, Steve Jobs, Charlie Munger, Linus Torvalds, and more) directly from any Claude Code session. Bundles the Heropedia MCP server registration + a skill enforcing the fetch-canonical-prompt-before-answering workflow.",
+      "author": {
+        "name": "SiliconRoshiBill",
+        "url": "https://github.com/SiliconRoshiBill"
+      },
+      "homepage": "https://www.heropedia.org",
+      "repository": "https://github.com/SiliconRoshiBill/heropedia-plugin",
+      "license": "MIT",
+      "tags": [
+        "mcp",
+        "personas",
+        "experts",
+        "warren-buffett",
+        "steve-jobs",
+        "charlie-munger",
+        "linus-torvalds",
+        "role-based",
+        "heropedia"
+      ],
+      "source": "."
+    }
+  ]
+}
