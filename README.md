@@ -11,6 +11,8 @@ The plugin does not ship any data. All 324+ personas live at [heropedia.org](htt
 
 ## Install
 
+### Claude Code
+
 Two commands. The first registers this repo as a marketplace; the second installs the plugin from it.
 
 ```bash
@@ -18,7 +20,36 @@ claude plugin marketplace add https://github.com/SiliconRoshiBill/heropedia-plug
 claude plugin install heropedia@heropedia
 ```
 
-That's it. The plugin auto-registers the MCP server (`plugin:heropedia:heropedia`) on install — no separate `claude mcp add` needed. Open a new session and you're wired up.
+The plugin auto-registers the MCP server (`plugin:heropedia:heropedia`) on install — no separate `claude mcp add` needed. Open a new session and you're wired up.
+
+### Codex
+
+One command. The installer patches `~/.codex/config.toml` idempotently and backs up any existing config.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash
+```
+
+Add `--with-agents` if you also want the AGENTS.md workflow file (recommended — it teaches Codex to fetch personas before answering, handle multi-role ambiguity, and defend against prompt injection inside persona bodies):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash -s -- --with-agents
+```
+
+If you'd rather do it manually, add this to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.heropedia]
+url = "https://www.heropedia.org/mcp"
+```
+
+### Gemini CLI
+
+The `gemini-extension.json` at the repo root registers the MCP for Gemini CLI users. Add this repo as a Gemini extension per the [Gemini CLI extensions guide](https://geminicli.com/docs/extensions/).
+
+### Claude Desktop / Cursor / any HTTP MCP client
+
+See [heropedia.org/mcp-guide](https://www.heropedia.org/mcp-guide) for copy-paste configs.
 
 ## Try it
 
