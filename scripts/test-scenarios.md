@@ -45,9 +45,12 @@ Expect: a file exists; `Source: canonical` appears in the header; no file under 
 
 **Privacy check:**
 ```bash
-grep -riE 'back pain|chronic' ~/.heropedia/office-hours/pending-share/ 2>/dev/null || echo "clean"
+# The shared JSON must not contain user answers, topic, diagnosis, assignment, or red flag.
+# Verify by checking for those field NAMES (not values) — if any appears, the payload leaked.
+grep -rE '"(topic|user_answer|answer|diagnosis|assignment|red_flag)"' \
+     ~/.heropedia/office-hours/pending-share/ 2>/dev/null || echo "clean"
 ```
-Expect: `clean` (no user topic strings in shared JSON).
+Expect: `clean` (no user-side field names in shared JSON — payload should contain only hero_id, hero_name, role_name, questions[], generated_at, model_id, skill_version, schema_version).
 
 ## Scenario 3: Trigger routing — no false positives to `heropedia-office-hour`
 

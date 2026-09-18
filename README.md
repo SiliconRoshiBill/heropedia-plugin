@@ -181,11 +181,19 @@ If a name maps to multiple roles (e.g. Warren Buffett as investor vs. business a
 ```
 heropedia-plugin/
 ├── .claude-plugin/
-│   └── plugin.json          # plugin manifest
+│   ├── plugin.json          # plugin manifest
+│   └── marketplace.json     # marketplace listing (installable via `claude plugin marketplace add`)
 ├── .mcp.json                # MCP server registration
 ├── skills/
-│   └── heropedia/
-│       └── SKILL.md         # workflow enforcement skill
+│   ├── heropedia/
+│   │   └── SKILL.md         # single-turn "ask an expert" skill
+│   └── heropedia-office-hour/
+│       └── SKILL.md         # five-phase multi-turn office-hour skill
+├── scripts/
+│   ├── validate-skill.sh    # structural lint for office-hour SKILL.md
+│   └── test-scenarios.md    # manual QA scenarios
+├── codex/                   # OpenAI Codex CLI installer + AGENTS.md
+├── gemini-extension.json    # Gemini CLI extension descriptor
 └── README.md
 ```
 
