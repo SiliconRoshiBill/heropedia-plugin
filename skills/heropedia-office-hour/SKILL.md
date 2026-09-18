@@ -180,3 +180,120 @@ The specific way the user is most likely to fool themselves in the next week. In
 Example (Munger): "You'll spend the week researching competitors' pricing pages and calling that 'progress.' It isn't. Progress is one conversation with one customer who churned last month."
 
 No wrap-up pleasantries. No "great session." The session ends when the red flag is delivered.
+
+## Phase 5 — Notes to local disk (automatic, silent)
+
+Immediately after Phase 4, write a notes file. No user prompt; this is skill housekeeping.
+
+### Paths and naming
+
+- Directory: `~/.heropedia/office-hours/` (create with `mkdir -p` if missing).
+- Filename: `<YYYY-MM-DD>-<hero-slug>-<topic-slug>.md` where:
+  - `<YYYY-MM-DD>` = today's date in the user's local timezone.
+  - `<hero-slug>` = `hero_name`, lower-cased, non-alphanumeric replaced with `-`, collapsed runs of `-` to a single `-`, trimmed of leading/trailing `-`.
+  - `<topic-slug>` = same transform on the Phase 1 topic string, truncated to 40 chars.
+
+### File content template
+
+```markdown
+# Office Hour with <Hero> as <Role>
+Date: <YYYY-MM-DD>
+Source: <canonical | distilled>
+Persona: heropedia.org/<id>
+
+## Topic
+<user's Phase 1 topic verbatim>
+
+## Questions & Answers
+### Q1: <question>
+<user's answer>
+[Follow-up: <if any>]
+
+### Q2: ...
+(one entry per asked question — skipped questions omitted, with a one-line marker: "Q3 skipped — covered by Q2 answer.")
+
+## Premise Challenge
+Hero's position: <session.premise_challenge.hero_position>
+User's rebuttal: <session.premise_challenge.user_rebuttal or "(none)">
+Final stance: <session.premise_challenge.final_stance>
+
+## Diagnosis
+<session.diagnosis>
+
+## Assignment (by <date extracted from assignment>)
+<session.assignment>
+
+## Red Flag
+<session.red_flag>
+```
+
+Use the `Write` tool to create this file. If the write fails (permissions, disk full), tell the user in one line and dump the notes to the chat as fallback — never swallow silently.
+
+### Phase 5b — Optional project copy
+
+Only if the current working directory is inside a git repo. Detect with:
+
+```bash
+git rev-parse --show-toplevel 2>/dev/null
+```
+
+If that exits 0 and returns a path (call it `$REPO`), fire AskUserQuestion:
+
+> "Copy these notes to `$REPO/docs/office-hours/<same-filename>.md` so you can commit them with the project? (yes / no)"
+
+Yes → `mkdir -p "$REPO/docs/office-hours"` then `cp` the file. No → do nothing.
+
+If not in a git repo, skip Phase 5b entirely. No prompt.
+
+## Phase 6 — Share the questions (opt-in, only when `session.source == "distilled"`)
+
+Fires only if Phase 0.5 fell back to runtime distillation. Fire AskUserQuestion:
+
+> "The six questions <Hero> asked you today were generated on the fly — this hero doesn't have curated office-hour questions on heropedia yet. Would you share the questions themselves (not your answers) to help heropedia curate a canonical set? Anonymous, one-way, no user data uploaded. Your answers, diagnosis, and assignment never leave this machine."
+
+Options: "Yes, share the questions" | "No, keep them local".
+
+### On "yes"
+
+1. Generate a UUID: `uuidgen | tr '[:upper:]' '[:lower:]'`.
+2. Write a JSON payload to `~/.heropedia/office-hours/pending-share/<uuid>.json`:
+
+```json
+{
+  "hero_id": "<the id from getDetail>",
+  "hero_name": "<hero_name>",
+  "role_name": "<role_name>",
+  "questions": [
+    {"question": "...", "push_until": "...", "red_flags": "..."},
+    ...
+  ],
+  "generated_at": "<ISO-8601 timestamp>",
+  "model_id": "claude-opus-4-7",
+  "skill_version": "0.2.0",
+  "schema_version": 1
+}
+```
+
+3. Tell the user in one line: "Queued locally at `~/.heropedia/office-hours/pending-share/<uuid>.json`. Nothing has been uploaded — the heropedia intake endpoint isn't live yet. When it ships, a future skill update will drain this queue."
+
+**v1 never sends any HTTP request.** No `curl`, no `fetch`, no network. Only file writes.
+
+### On "no"
+
+Say nothing. End the session cleanly.
+
+### When `session.source == "canonical"`
+
+Skip Phase 6 entirely — the questions are already the target of curation, so there's nothing to share.
+
+## Privacy & content layering — the guarantee we make to the user
+
+Three content layers, three clean boundaries:
+
+| Layer | Location | Contains user data? | Uploaded? |
+|---|---|---|---|
+| Session notes | `~/.heropedia/office-hours/*.md` | Yes | Never — never leaves the local machine unless the user runs Phase 5b copy |
+| Generated question set | `~/.heropedia/office-hours/pending-share/*.json` (opt-in only) | No — pure model output about a persona | Only via user opt-in in Phase 6, and v1 doesn't network-send anything anyway |
+| Canonical questions | `## Office Hour Questions` section in persona markdown on heropedia.org | No | Public content, edited by heropedia maintainers |
+
+**The invariant:** anything the user said or the hero said about the user — topic, answers, diagnosis, assignment, red flag — never leaves the machine. Only the questions themselves (which are about the persona, not the user) are shareable, and only with an explicit opt-in per session. This is why Phase 6 only fires on distilled sessions: only the questions themselves, and only when they're not already canonical.
