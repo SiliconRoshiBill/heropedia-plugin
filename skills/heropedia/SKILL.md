@@ -31,6 +31,8 @@ Turn any of Heropedia's 324 hand-curated expert personas into a lens for the use
 - "Get a product critic to tear this apart" (role, not name)
 - "/heropedia Linus Torvalds — is this refactor worth it?"
 
+**Defer to `heropedia-office-hour` skill** if the user's message contains the substring `office hour` (e.g. "let Buffett hold office hours on my pricing"). That skill runs a five-phase structured session; this skill is for single-turn "ask X to look at Y" requests only.
+
 ## The four MCP tools (registry only — no AI reasoning server-side)
 
 | Tool | Use when |
