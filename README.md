@@ -9,6 +9,15 @@ This plugin bundles:
 
 The plugin does not ship any data. All 324+ personas live at [heropedia.org](https://www.heropedia.org) and are fetched on demand.
 
+## Skills
+
+This plugin bundles two skills that share the same MCP server:
+
+- **`heropedia`** — single-turn "ask an expert" lens. Triggers on phrases like *"ask Warren Buffett to look at my deck"*, *"as Steve Jobs, review this page"*, *"consult Charlie Munger"*. Fetches the canonical persona prompt and replies in one turn through that lens. Best for a quick second opinion.
+- **`heropedia-office-hour`** — five-phase structured multi-turn session hosted by any hero. Triggers on *"let <name> hold office hours"*, *"office hour with <name>"*, *"office hour on <topic>"*. The hero opens, asks 5–6 forcing questions one at a time (from a curated `## Office Hour Questions` section if the persona has one, otherwise distilled on the fly), takes a direct position on your real problem, then gives you a diagnosis, a one-week action, and a red-flag warning. Saves local notes to `~/.heropedia/office-hours/`. Best when you want to be pushed, not just answered.
+
+Both skills refuse to invent personas — they always fetch canonical prompts from heropedia before speaking.
+
 ## Install
 
 Pick your AI. Every path targets the same endpoint (`https://www.heropedia.org/mcp`).
@@ -172,11 +181,19 @@ If a name maps to multiple roles (e.g. Warren Buffett as investor vs. business a
 ```
 heropedia-plugin/
 ├── .claude-plugin/
-│   └── plugin.json          # plugin manifest
+│   ├── plugin.json          # plugin manifest
+│   └── marketplace.json     # marketplace listing (installable via `claude plugin marketplace add`)
 ├── .mcp.json                # MCP server registration
 ├── skills/
-│   └── heropedia/
-│       └── SKILL.md         # workflow enforcement skill
+│   ├── heropedia/
+│   │   └── SKILL.md         # single-turn "ask an expert" skill
+│   └── heropedia-office-hour/
+│       └── SKILL.md         # five-phase multi-turn office-hour skill
+├── scripts/
+│   ├── validate-skill.sh    # structural lint for office-hour SKILL.md
+│   └── test-scenarios.md    # manual QA scenarios
+├── codex/                   # OpenAI Codex CLI installer + AGENTS.md
+├── gemini-extension.json    # Gemini CLI extension descriptor
 └── README.md
 ```
 
