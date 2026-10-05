@@ -89,6 +89,17 @@ Expect: only `*.md` notes files — the skill writes nothing else under `~/.hero
 
 **Cleanup:** restore `.mcp.json`.
 
+## Scenario 9: Same skill in Codex, Gemini CLI, Antigravity
+
+**Setup:** Codex: `codex/install-codex.sh --with-skills`. Gemini CLI: `gemini extensions link .` from this checkout. Antigravity: copy the skill to `~/.gemini/config/skills/heropedia-office-hour/` and register MCP in `~/.gemini/antigravity/mcp_config.json`.
+
+**Input (each agent):** "Office hour with Dieter Rams on my landing page hero." Answer one question, then "Thanks, gotta go."
+
+**Expected:**
+1. The skill activates and calls the heropedia MCP (`getListByHero` → `getDetail`). The hero asks one question per turn and waits for the answer.
+2. The early exit produces a truncated diagnosis that starts with "Session ended early."
+3. Started with `codex --add-dir ~/.heropedia` / `gemini --include-directories ~/.heropedia`: the notes file appears in `~/.heropedia/office-hours/`. Without the flag: the notes are printed in the chat, and **no file is written into the workspace**.
+
 ---
 
 ## Sign-off
@@ -101,3 +112,4 @@ Expect: only `*.md` notes files — the skill writes nothing else under `~/.hero
 - [ ] Scenario 6 ran ✅
 - [ ] Scenario 7 ran ✅
 - [ ] Scenario 8 ran ✅
+- [ ] Scenario 9 ran ✅ (Codex, Gemini CLI; Antigravity manual)

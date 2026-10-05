@@ -18,6 +18,19 @@ This plugin bundles two skills that share the same MCP server:
 
 Both skills refuse to invent personas — they always fetch canonical prompts from heropedia before speaking.
 
+### One office-hour skill, four agents
+
+`skills/heropedia-office-hour/SKILL.md` is a single file in the open [Agent Skills](https://agentskills.io) format. The same file runs in:
+
+| Agent | Install | Notes are saved when… |
+|---|---|---|
+| **Claude Code** | `claude plugin install heropedia@heropedia` (see below) | always |
+| **Codex CLI** | `install-codex.sh --with-skills` (see below) | you start Codex with `--add-dir ~/.heropedia`, or approve the write when asked. Otherwise the notes are printed in the chat. |
+| **Gemini CLI** | `gemini extensions install https://github.com/SiliconRoshiBill/heropedia-plugin` | you start Gemini with `--include-directories ~/.heropedia`. Otherwise the notes are printed in the chat. |
+| **Antigravity** | see [Google — Antigravity](#google--antigravity) | not yet verified end to end. If the write is blocked, the notes are printed in the chat. |
+
+Re-running the install command upgrades the skill to the latest version.
+
 ## Install
 
 Pick your AI. Every path targets the same endpoint (`https://www.heropedia.org/mcp`).
@@ -64,11 +77,13 @@ Business/Enterprise workspaces: a workspace admin adds the connector under Works
 curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash
 ```
 
-Add `--with-agents` to also install the workflow-enforcing `AGENTS.md`:
+Add `--with-agents` to also install the workflow-enforcing `AGENTS.md`, and `--with-skills` to install (or upgrade) the office-hour skill into `~/.codex/skills/`:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash -s -- --with-agents
+curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/install-codex.sh | bash -s -- --with-agents --with-skills
 ```
+
+To let the office hour save notes to `~/.heropedia/office-hours/`, start Codex with `codex --add-dir ~/.heropedia`.
 
 Or manually add to `~/.codex/config.toml`:
 
@@ -128,7 +143,14 @@ console.log(result.finalOutput);
 
 ### Google — Gemini CLI
 
-This repo ships a [`gemini-extension.json`](./gemini-extension.json). Follow the [Gemini CLI extensions guide](https://geminicli.com/docs/extensions/) to add it, or paste this into your Gemini config:
+This repo is a Gemini CLI extension: [`gemini-extension.json`](./gemini-extension.json) registers the MCP server, and both skills under `skills/` are picked up automatically.
+
+```bash
+gemini extensions install https://github.com/SiliconRoshiBill/heropedia-plugin   # upgrade later: gemini extensions update heropedia
+gemini --include-directories ~/.heropedia                                          # lets the office hour save notes
+```
+
+MCP only — paste this into your Gemini config instead:
 
 ```json
 {
@@ -139,6 +161,30 @@ This repo ships a [`gemini-extension.json`](./gemini-extension.json). Follow the
   }
 }
 ```
+
+### Google — Antigravity
+
+Register the MCP server in `~/.gemini/antigravity/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "heropedia": {
+      "serverUrl": "https://www.heropedia.org/mcp"
+    }
+  }
+}
+```
+
+Install the office-hour skill to `~/.gemini/config/skills/`, the global skills folder that every Antigravity flavor (IDE, CLI, agent) reads:
+
+```bash
+mkdir -p ~/.gemini/config/skills/heropedia-office-hour
+curl -sSL https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/skills/heropedia-office-hour/SKILL.md \
+  -o ~/.gemini/config/skills/heropedia-office-hour/SKILL.md
+```
+
+Re-run the `curl` line to upgrade.
 
 ### Cursor
 
@@ -192,8 +238,8 @@ heropedia-plugin/
 ├── scripts/
 │   ├── validate-skill.sh    # structural lint for office-hour SKILL.md
 │   └── test-scenarios.md    # manual QA scenarios
-├── codex/                   # OpenAI Codex CLI installer + AGENTS.md
-├── gemini-extension.json    # Gemini CLI extension descriptor
+├── codex/                   # Codex CLI installer (MCP, AGENTS.md, skills)
+├── gemini-extension.json    # Gemini CLI extension descriptor (MCP + skills/)
 └── README.md
 ```
 

@@ -2,9 +2,10 @@
 # ============================================================================
 # Heropedia — Codex installer
 #
-# Registers the Heropedia MCP server in your ~/.codex/config.toml and installs
-# the AGENTS.md workflow file (if requested) so Codex sessions know how to
-# consult the 324+ expert personas at https://www.heropedia.org/mcp.
+# Registers the Heropedia MCP server in your ~/.codex/config.toml, and on
+# request installs the AGENTS.md workflow file and the office-hour skill, so
+# Codex sessions can consult the 324+ expert personas at
+# https://www.heropedia.org/mcp.
 #
 # Safe to re-run. Backs up your existing config before making any change.
 #
@@ -13,6 +14,10 @@
 #   curl -sSL https://www.heropedia.org/codex/install-codex.sh | bash -s -- --with-agents
 #   ./install-codex.sh              # local run
 #   ./install-codex.sh --with-agents # also install AGENTS.md into ~/.codex/AGENTS.md
+#   ./install-codex.sh --with-skills # also install skills into ~/.codex/skills/
+#
+# Re-running with --with-skills upgrades the installed skills to the latest
+# version on main.
 # ============================================================================
 
 set -eu
@@ -23,12 +28,22 @@ AGENTS_PATH="$CODEX_DIR/AGENTS.md"
 BACKUP_TS=$(printf '%s' "$(date +%Y%m%d-%H%M%S 2>/dev/null || echo backup)")
 MCP_URL="https://www.heropedia.org/mcp"
 # AGENTS.md lives in the plugin repo (public) — served raw over GitHub.
-AGENTS_URL="https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main/codex/AGENTS.md"
+RAW_BASE="https://raw.githubusercontent.com/SiliconRoshiBill/heropedia-plugin/main"
+AGENTS_URL="$RAW_BASE/codex/AGENTS.md"
+SKILLS_DIR="$CODEX_DIR/skills"
+SKILLS="heropedia-office-hour"
+# When run from a checkout, install the local skills instead of fetching main.
+LOCAL_SKILLS=""
+case "$0" in
+  *install-codex.sh) LOCAL_SKILLS="$(cd "$(dirname "$0")/.." && pwd)/skills" ;;
+esac
 
 WITH_AGENTS=0
+WITH_SKILLS=0
 for arg in "$@"; do
   case "$arg" in
     --with-agents) WITH_AGENTS=1 ;;
+    --with-skills) WITH_SKILLS=1 ;;
     --help|-h)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -127,7 +142,41 @@ if [ "$WITH_AGENTS" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Report
+# 4. Optional: install or upgrade skills
+# ---------------------------------------------------------------------------
+fetch() {  # fetch <url> <dest>
+  if command -v curl >/dev/null 2>&1; then
+    [ "$(curl -sSL -o "$2" -w '%{http_code}' "$1" || echo 000)" = "200" ]
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$1" -O "$2"
+  else
+    die "Need curl or wget to fetch $1"
+  fi
+}
+
+install_skill() {  # install_skill <name>
+  dest="$SKILLS_DIR/$1"
+  mkdir -p "$dest"
+  if [ -n "$LOCAL_SKILLS" ] && [ -f "$LOCAL_SKILLS/$1/SKILL.md" ]; then
+    cp "$LOCAL_SKILLS/$1/SKILL.md" "$dest/SKILL.md.new"
+  else
+    fetch "$RAW_BASE/skills/$1/SKILL.md" "$dest/SKILL.md.new" || die "Could not fetch skill $1"
+  fi
+  # Sanity check: must be the skill itself, not an error page.
+  if ! grep -q "^name: $1\$" "$dest/SKILL.md.new"; then
+    rm -f "$dest/SKILL.md.new"
+    die "Downloaded SKILL.md for $1 did not match expected content."
+  fi
+  mv "$dest/SKILL.md.new" "$dest/SKILL.md"
+  say "Installed skill $1 -> $dest/SKILL.md"
+}
+
+if [ "$WITH_SKILLS" -eq 1 ]; then
+  for skill in $SKILLS; do install_skill "$skill"; done
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Report
 # ---------------------------------------------------------------------------
 echo ""
 say "Done. Start a new Codex session and try:"
@@ -137,4 +186,8 @@ say ""
 say "Uninstall by removing the [mcp_servers.heropedia] block from $CONFIG_PATH"
 if [ "$WITH_AGENTS" -eq 1 ]; then
   say "(and the Heropedia section from $AGENTS_PATH if you added --with-agents)"
+fi
+if [ "$WITH_SKILLS" -eq 1 ]; then
+  say "Skills: \"Office hour with Charlie Munger on my pricing.\""
+  say "(remove skills with: rm -r $SKILLS_DIR/heropedia-office-hour)"
 fi
