@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Consult 324+ hand-crafted expert personas via the Heropedia MCP server, directly from Claude Code.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {

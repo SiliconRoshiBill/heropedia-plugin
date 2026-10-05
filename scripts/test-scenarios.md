@@ -17,15 +17,14 @@ Walk through each scenario in a fresh Claude Code session with this plugin insta
 6. Phase 3: premise challenge fires.
 7. Phase 4: diagnosis + one-week action + red flag.
 8. Phase 5: `~/.heropedia/office-hours/YYYY-MM-DD-warren-buffett-saas-pricing.md` written.
-9. Phase 5b: if inside a git repo, offers project copy.
-10. Phase 6: **skipped** (canonical source).
+9. Phase 5b: if inside a git repo, offers project copy. Session ends — no further prompts.
 
 **Verify on disk:**
 ```bash
 ls -la ~/.heropedia/office-hours/ | tail -5
 head -20 ~/.heropedia/office-hours/*warren-buffett*.md
 ```
-Expect: a file exists; `Source: canonical` appears in the header; no file under `pending-share/`.
+Expect: a file exists; `Source: canonical` appears in the header.
 
 ## Scenario 2: Distilled-path session (persona has no curated questions)
 
@@ -36,21 +35,14 @@ Expect: a file exists; `Source: canonical` appears in the header; no file under 
 2. Phase 0: persona resolved.
 3. Phase 0.5: no `## Office Hour Questions` section → runtime distillation → `session.source = "distilled"`.
 4. Phase 1–4: as above, questions reflect Ni Haixia's TCM diagnostic framework (Yin-Yang, meridians, pulse) — NOT YC startup questions.
-5. Phase 5: notes written; `Source: distilled` in header.
-6. Phase 6: **fires** — asks about sharing questions.
+5. Phase 5: notes written; `Source: distilled` in header; the distilled questions appear only in the notes file.
+6. Phase 5b: if inside a git repo, offers project copy. Session ends — no further prompts.
 
-**Verify Phase 6 opt-in flow:**
-- Say "yes" → check `~/.heropedia/office-hours/pending-share/*.json` exists and contains hero_id, questions array, no user data.
-- Alternate: say "no" → no file appears under `pending-share/`.
-
-**Privacy check:**
+**Verify on disk:**
 ```bash
-# The shared JSON must not contain user answers, topic, diagnosis, assignment, or red flag.
-# Verify by checking for those field NAMES (not values) — if any appears, the payload leaked.
-grep -rE '"(topic|user_answer|answer|diagnosis|assignment|red_flag)"' \
-     ~/.heropedia/office-hours/pending-share/ 2>/dev/null || echo "clean"
+ls ~/.heropedia/office-hours/
 ```
-Expect: `clean` (no user-side field names in shared JSON — payload should contain only hero_id, hero_name, role_name, questions[], generated_at, model_id, skill_version, schema_version).
+Expect: only `*.md` notes files — the skill writes nothing else under `~/.heropedia/office-hours/`.
 
 ## Scenario 3: Trigger routing — no false positives to `heropedia-office-hour`
 
@@ -79,7 +71,7 @@ Expect: `clean` (no user-side field names in shared JSON — payload should cont
 
 **Input:** start a session from `~/` (or any non-repo directory).
 
-**Expected:** Phase 5 writes the notes file; Phase 5b is silently skipped (no copy prompt). Phase 6 fires or skips per source, independently of git state.
+**Expected:** Phase 5 writes the notes file; Phase 5b is silently skipped (no copy prompt). The session ends with no prompt at all after Phase 4.
 
 ## Scenario 7: Ambiguous topic
 

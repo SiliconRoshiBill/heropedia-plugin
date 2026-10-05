@@ -106,7 +106,7 @@ If no `## Office Hour Questions` section exists:
 
 1. Read the persona's markdown as their operating manual.
 2. Distill 5–6 forcing questions at runtime in this persona's diagnostic voice. Each question must reflect this specific hero+role's framework — not generic YC/startup questions. Every question carries three fields: the `question` itself, a `push_until` criterion (what a specific-enough answer looks like), and 1–3 `red_flags` (answers that require pushing back once).
-3. Set `session.source = "distilled"`. This value gates Phase 6.
+3. Set `session.source = "distilled"`.
 
 If distillation produces fewer than 3 usable questions after one retry, abort the session with: "I couldn't derive office-hour questions for this persona. Try a different hero, or contribute canonical questions at heropedia.org/submit."
 
@@ -145,7 +145,7 @@ If the user says any variant of "just do it" / "skip the questions" / "move on":
 
 ### If the user goes silent or says goodbye
 
-This is a different state from the escape hatch above — the escape hatch is a voluntary "just do it, faster"; this is the user leaving. If the user says any variant of "thanks, gotta go" / "let's stop here" / "I'm done" / or goes silent for one turn without answering the current question, do NOT continue asking questions or run Phase 3. Save whatever answers exist. Skip Phase 3 entirely. Run Phase 4 as a truncated diagnosis prefixed with "Session ended early. What I heard so far:". Run Phase 5 (notes). Skip Phase 5b and Phase 6. Set `session.abandoned = true` for the Phase 5 notes template.
+This is a different state from the escape hatch above — the escape hatch is a voluntary "just do it, faster"; this is the user leaving. If the user says any variant of "thanks, gotta go" / "let's stop here" / "I'm done" / or goes silent for one turn without answering the current question, do NOT continue asking questions or run Phase 3. Save whatever answers exist. Skip Phase 3 entirely. Run Phase 4 as a truncated diagnosis prefixed with "Session ended early. What I heard so far:". Run Phase 5 (notes). Skip Phase 5b. Set `session.abandoned = true` for the Phase 5 notes template.
 
 ## Phase 3 — Premise challenge (1 turn, plus at most one rebuttal round)
 
@@ -259,57 +259,13 @@ Yes → `mkdir -p "$REPO/docs/office-hours"` then `cp` the file. No → do nothi
 
 If not in a git repo, skip Phase 5b entirely. No prompt.
 
-## Phase 6 — Share the questions (opt-in, only when `session.source == "distilled"`)
-
-Fires only if Phase 0.5 fell back to runtime distillation. Fire AskUserQuestion:
-
-> "The <N> questions <Hero> asked you today were generated on the fly — this hero doesn't have curated office-hour questions on heropedia yet. Would you share the questions themselves (not your answers) to help heropedia curate a canonical set? Anonymous, one-way, no user data uploaded. Your answers, diagnosis, and assignment never leave this machine."
-
-(Substitute the actual question count for <N> — Phase 0.5 allows 5 or 6.)
-
-Options: "Yes, share the questions" | "No, keep them local".
-
-### On "yes"
-
-1. Generate a UUID: `uuidgen | tr '[:upper:]' '[:lower:]'`.
-2. Write a JSON payload to `~/.heropedia/office-hours/pending-share/<uuid>.json`:
-
-```json
-{
-  "hero_id": "<the id from getDetail>",
-  "hero_name": "<hero_name>",
-  "role_name": "<role_name>",
-  "questions": [
-    {"question": "...", "push_until": "...", "red_flags": "..."},
-    ...
-  ],
-  "generated_at": "<ISO-8601 timestamp>",
-  "model_id": "claude-opus-4-7",
-  "skill_version": "0.2.0",
-  "schema_version": 1
-}
-```
-
-3. Tell the user in one line: "Queued locally at `~/.heropedia/office-hours/pending-share/<uuid>.json`. Nothing has been uploaded — the heropedia intake endpoint isn't live yet. When it ships, a future skill update will drain this queue."
-
-**v1 never sends any HTTP request.** No `curl`, no `fetch`, no network. Only file writes.
-
-### On "no"
-
-Say nothing. End the session cleanly.
-
-### When `session.source == "canonical"`
-
-Skip Phase 6 entirely — the questions are already the target of curation, so there's nothing to share.
-
 ## Privacy & content layering — the guarantee we make to the user
 
-Three content layers, three clean boundaries:
+Two content layers, one clean boundary:
 
 | Layer | Location | Contains user data? | Uploaded? |
 |---|---|---|---|
 | Session notes | `~/.heropedia/office-hours/*.md` | Yes | Never uploaded by the skill. Phase 5b optionally copies notes into your repo's docs/ — if you then commit and push, they follow that repo's visibility. Not the skill's decision. |
-| Generated question set | `~/.heropedia/office-hours/pending-share/*.json` (opt-in only) | No — pure model output about a persona | Only via user opt-in in Phase 6, and v1 doesn't network-send anything anyway |
 | Canonical questions | `## Office Hour Questions` section in persona markdown on heropedia.org | No | Public content, edited by heropedia maintainers |
 
-**The invariant:** anything the user said or the hero said about the user — topic, answers, diagnosis, assignment, red flag — never leaves the machine via any action the skill itself takes; the skill never uploads it and never leaves the local machine on its own. Only the questions themselves (which are about the persona, not the user) are shareable, and only with an explicit opt-in per session. This is why Phase 6 only fires on distilled sessions: only the questions themselves, and only when they're not already canonical. If you accept the Phase 5b copy, the notes now live inside a git repo you control — pushing that repo publishes them. The skill never pushes for you, but you should treat any repo you might push publicly as a place that will publish whatever ends up in it.
+**The invariant:** the skill itself never sends any HTTP request — no `curl`, no `fetch`, no upload of any kind. The only network traffic in a session is the read-only `mcp__heropedia__*` lookups, which send a hero or role query and never any session content. Everything the session produces — topic, questions, answers, diagnosis, assignment, red flag — is written to local disk and never leaves the local machine via any action the skill itself takes. Distilled questions are no exception: they live only in the notes file. If you accept the Phase 5b copy, the notes now live inside a git repo you control — pushing that repo publishes them. The skill never pushes for you, but you should treat any repo you might push publicly as a place that will publish whatever ends up in it.

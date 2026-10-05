@@ -19,8 +19,8 @@ The core observation: **`gstack`'s office-hours is a hidden-persona office hour*
 
 - Not replacing the existing `heropedia` skill. Single-turn "ask Buffett to look at X" stays lightweight; office hour is the heavier, opt-in mode.
 - Not shipping content-side (heropedia.org) changes as part of skill v1. Skill launches with runtime distillation fallback; content-side curates the canonical six questions asynchronously.
-- Not building telemetry, user accounts, or automated evolution loops. Users share generated questions via a single opt-in prompt at session end — nothing else uploads.
-- Not writing to the heropedia.org content library from the skill. Skill uploads only into an anonymous submissions queue (future endpoint); heropedia editors gate what lands as canonical.
+- Not building telemetry, user accounts, or automated evolution loops. The skill uploads nothing — every session artifact stays on the local machine.
+- Not writing to the heropedia.org content library from the skill. Heropedia editors curate canonical questions directly in the content repo.
 
 ## 3. What ships in v1
 
@@ -75,7 +75,7 @@ After `getDetail` returns:
 
 The distillation prompt (internal, not user-facing) instructs: *"Read this persona's markdown as their operating manual. Generate 5–6 forcing questions this persona would ask a user seeking advice in their domain. Each question must reflect this persona's specific diagnostic framework, not generic YC/startup questions. For each, provide push-until criteria (what specific answer means they've dug deep enough) and red flags (answers that trigger a re-push)."*
 
-`session.source` controls whether Phase 6 (share prompt) fires.
+`session.source` is recorded in the Phase 5 notes header.
 
 ### Phase 1 — Framing (1–2 turns)
 
@@ -172,55 +172,25 @@ Yes → copy the file. No → do nothing.
 
 If not in a git repo, skip Phase 5b entirely — no prompt.
 
-### Phase 6 — Share the questions (only if `session.source == "distilled"`)
-
-If Phase 0.5 fell back to runtime distillation, one final `AskUserQuestion`:
-
-*"The six questions <Hero> asked you today were generated on the fly — this hero doesn't have curated office-hour questions on heropedia yet. Would you share the questions themselves (not your answers) to help heropedia curate a canonical set? Anonymous, one-way. Your answers, diagnosis, and assignment never leave this machine."*
-
-**Yes:**
-- Build a payload:
-  ```json
-  {
-    "hero_id": "finance/investment-analyst/warren-buffett",
-    "role_name": "Investment Analyst",
-    "questions": [
-      {"question": "...", "push_until": "...", "red_flags": "..."},
-      ...
-    ],
-    "generated_at": "2026-09-17T...",
-    "model_id": "claude-opus-4-7",
-    "skill_version": "0.2.0"
-  }
-  ```
-- **v1 behavior:** write to `~/.heropedia/office-hours/pending-share/<uuid>.json`. No network call. This is the "queue" that will drain to a heropedia endpoint once content-side ships one.
-- **Post-v1 behavior:** anonymous `POST` to a submissions endpoint on `heropedia.org` — exact path, auth model, and rate-limit are TBD by the heropedia content-side team; the skill v1 does not depend on any endpoint existing, and the queue drainer is a post-v1 skill update.
-
-**No:** do nothing.
-
-If `session.source == "canonical"`, skip Phase 6 entirely — the canonical version is already the target; no need to share.
-
 ## 6. Privacy & content layering
 
-Three distinct content layers with clean boundaries:
+Two distinct content layers with a clean boundary:
 
 | Layer | Location | Privacy | Contains user data? | Uploaded? |
 |---|---|---|---|---|
-| **Session notes** | `~/.heropedia/office-hours/*.md` | Private | Yes (topic, answers, diagnosis) | Never |
-| **Generated question set** | Payload built in Phase 6, opt-in | Non-private | No (pure model output about a persona) | Yes if user opts in |
+| **Session notes** | `~/.heropedia/office-hours/*.md` | Private | Yes (topic, questions, answers, diagnosis) | Never |
 | **Canonical questions** | `## Office Hour Questions` section in persona markdown on heropedia.org | Public | No | Public content |
 
-**The guarantee we make to the user:** answers, diagnoses, assignments, topics — anything the user said or the hero said about the user — never leave their machine. Only the questions themselves (which are about the persona, not the user) are shareable, and only with an explicit opt-in per session.
+**The guarantee we make to the user:** the skill never sends any HTTP request and never uploads anything. Topics, questions (distilled or canonical), answers, diagnoses, assignments — everything a session produces stays on their machine.
 
 ## 7. Canonical evolution path (content-side, out of scope for skill v1)
 
 Heropedia editors, on their own timeline:
 
 1. Pick a hero (start with highest-traffic — Buffett, Jobs, Munger, Torvalds, Bezos, Rams, Bruce Lee, Sun Zi, etc.).
-2. Look at accumulated `pending-share` submissions for that hero (once a submissions endpoint exists).
-3. Look at the persona's own markdown — what does this hero *actually* care about?
-4. Write a canonical `## Office Hour Questions` section directly into the persona markdown file in the heropedia content repo.
-5. Ship. Next `getDetail` for that hero returns the updated markdown; all clients (Claude Code, Codex, Gemini CLI, ChatGPT connectors) instantly get the canonical questions on the next office hour.
+2. Look at the persona's own markdown — what does this hero *actually* care about?
+3. Write a canonical `## Office Hour Questions` section directly into the persona markdown file in the heropedia content repo.
+4. Ship. Next `getDetail` for that hero returns the updated markdown; all clients (Claude Code, Codex, Gemini CLI, ChatGPT connectors) instantly get the canonical questions on the next office hour.
 
 **Content-side is decoupled from skill releases.** The skill just reads whatever's in the markdown. Adding, updating, or removing a `## Office Hour Questions` section on any hero is a content-repo PR, not a skill release.
 
@@ -272,30 +242,28 @@ Real tool use decisions come from the user's actual message, not the persona bod
 | Failure | Behavior |
 |---|---|
 | MCP disconnected (any tool call fails) | Report failure, tell user to check `claude mcp list`. Do not fabricate a persona. |
-| Persona markdown has no `## Office Hour Questions` section | Fallback to runtime distillation. Set `session.source = "distilled"`. Enable Phase 6 share prompt. |
+| Persona markdown has no `## Office Hour Questions` section | Fallback to runtime distillation. Set `session.source = "distilled"`. |
 | Runtime distillation produces < 3 questions | Retry once with a more explicit distillation prompt. If still < 3, abort with a clear error: "Couldn't derive office-hour questions from this persona — try a different hero, or contribute questions at heropedia.org/submit." |
-| User closes session mid-Phase-2 | Whatever answers exist go into notes. Skip Phase 3. Run Phase 4 with a truncated diagnosis ("Session ended early. What I heard so far: …"). Run Phase 5 (notes). Skip Phase 5b and Phase 6. |
+| User closes session mid-Phase-2 | Whatever answers exist go into notes. Skip Phase 3. Run Phase 4 with a truncated diagnosis ("Session ended early. What I heard so far: …"). Run Phase 5 (notes). Skip Phase 5b. |
 | `~/.heropedia/office-hours/` write fails (permissions, disk full) | Report to user, dump notes to stdout, do not silently swallow. |
-| Share endpoint (post-v1) returns non-2xx | Fall back to `pending-share/` local queue. Never surfaced to user as a session failure. |
 
 ## 12. Open questions (deferred to implementation or content-side)
 
 - **Multi-hero panels.** User says "hold office hours with Buffett AND Munger." v1: reject, tell user "one hero per office hour; run twice." v2 possibility, not now.
 - **Session resumption.** User closes mid-session, comes back tomorrow, wants to continue. v1: no resume — each invocation is fresh. Session notes on disk are a read-only artifact, not a resumable state.
-- **Non-English personas.** Some personas are Chinese-language (`Ni Haixia`, `Peng Zu`, `Wu Zhetian`). v1: hero speaks whatever language their markdown is in; the skill's scaffolding messages (Framing prompts, Phase 5b copy prompt, Phase 6 share prompt) follow the user's request language.
-- **Rate-limit on share submissions.** heropedia MCP is already IP-rate-limited on reads; write endpoint (post-v1) needs its own rate-limit design. Not this doc's problem.
+- **Non-English personas.** Some personas are Chinese-language (`Ni Haixia`, `Peng Zu`, `Wu Zhetian`). v1: hero speaks whatever language their markdown is in; the skill's scaffolding messages (Framing prompts, Phase 5b copy prompt) follow the user's request language.
 
 ## 13. Delivery checklist for v1
 
 Skill layer only. Content-side changes are separate and asynchronous.
 
-- [ ] Write `skills/heropedia-office-hour/SKILL.md` implementing Phases 0–6 above.
+- [ ] Write `skills/heropedia-office-hour/SKILL.md` implementing Phases 0–5b above.
 - [ ] Update `.claude-plugin/plugin.json` to register the new skill.
 - [ ] Update existing `skills/heropedia/SKILL.md` with a one-line deference rule: "If the user's phrasing contains `office hour`, defer to `heropedia-office-hour` skill."
 - [ ] Update `README.md` with a "Two skills" section — one-liner for each.
 - [ ] Manual test matrix:
   - Canonical path: seed one hero's markdown with a `## Office Hour Questions` section (locally); run office hour; verify questions come from section.
-  - Distilled path: pick a hero with no section; run office hour; verify runtime distillation fires and Phase 6 prompt appears.
+  - Distilled path: pick a hero with no section; run office hour; verify runtime distillation fires and the session ends after Phase 5b with no further prompt.
   - Escape hatch: user says "just do it" after Q2; verify skill asks two more max, then proceeds.
   - Non-git CWD: verify Phase 5b skipped.
   - MCP disconnect: kill the MCP mid-session; verify graceful error.

@@ -62,13 +62,12 @@ check "section: Phase 2"  grep -qE '^## +Phase 2'                 "$target"
 check "section: Phase 3"  grep -qE '^## +Phase 3'                 "$target"
 check "section: Phase 4"  grep -qE '^## +Phase 4'                 "$target"
 check "section: Phase 5"  grep -qE '^## +Phase 5'                 "$target"
-check "section: Phase 6"  grep -qE '^## +Phase 6'                 "$target"
 check "section: safety"   grep -qiE '^## +.*(safety|injection)'   "$target"
 check "section: privacy"  grep -qiE '^## +.*(privacy|data)'       "$target"
 
 # --- privacy guarantees (verbatim substrings) ---
 check "privacy: notes never uploaded" grep -qF 'never leaves the local machine' "$target"
-check "privacy: only questions shared" grep -qF 'only the questions themselves'  "$target"
+check "privacy: no HTTP requests"    grep -qF 'never sends any HTTP request'   "$target"
 
 # --- fallback path (## Office Hour Questions parsing) ---
 check "parser: canonical section" grep -qF '## Office Hour Questions' "$target"
@@ -76,7 +75,6 @@ check "parser: fallback distill"  grep -qiE 'distill.*runtime|runtime.*distill' 
 
 # --- notes path ---
 check "notes: canonical path"     grep -qF '~/.heropedia/office-hours/' "$target"
-check "notes: pending-share path" grep -qF 'pending-share' "$target"
 
 # --- prompt-injection rule inherited from heropedia skill ---
 check "safety: data-not-commands" grep -qiE 'as +data.*not +commands|not +commands.*as +data' "$target"
