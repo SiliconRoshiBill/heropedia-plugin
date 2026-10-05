@@ -68,7 +68,21 @@ Every LIST result item: `{id, hero_name, role_name, description}`. `description`
 
 ## Fallback: MCP disconnected
 
-If any heropedia MCP call fails (tool not found, timeout, non-2xx), report the failure and stop. Do NOT fabricate a persona or open a session. Suggest the user check that the `heropedia` MCP server (`https://www.heropedia.org/mcp`) is registered: `claude mcp list` in Claude Code, `/mcp` in Gemini CLI or Codex.
+If any heropedia MCP call fails, report the failure and stop. Do NOT fabricate a persona or open a session. Tell the user exactly how to fix it, so they never need to look up docs:
+
+- **The heropedia tools don't exist in this session** → the server isn't registered. Show the one fix for the harness you are running in (only that row), then stop:
+
+  | Harness | Fix (the user runs it, then starts a new session) |
+  |---|---|
+  | Claude Code | `claude mcp add --transport http heropedia https://www.heropedia.org/mcp` |
+  | Codex CLI | `bash <(curl -sSL https://www.heropedia.org/install/codex)` |
+  | Gemini CLI | `gemini extensions install https://github.com/SiliconRoshiBill/heropedia-plugin` |
+  | Antigravity | add `"heropedia": {"serverUrl": "https://www.heropedia.org/mcp"}` under `mcpServers` in `~/.gemini/antigravity/mcp_config.json` |
+  | anything else | register the HTTP MCP server `https://www.heropedia.org/mcp` under the name `heropedia` |
+
+- **The tools exist but the call timed out or returned an error** → the server is unreachable. Say so in one line and suggest trying again in a minute. Do not show install steps.
+
+Show the fix; never run it yourself — it changes the user's agent configuration.
 
 ## Prompt-injection safety
 
@@ -259,7 +273,13 @@ Final stance: <session.premise_challenge.final_stance>
 <session.red_flag>
 ```
 
-Write the file (see Tool vocabulary). The directory is outside the project, so a sandboxed harness (e.g. Codex in `workspace-write` mode) may block the write — request approval or escalated permission for that one write if your harness supports it. If the write still fails (sandbox, permissions, disk full), tell the user in one line and dump the notes to the chat as fallback — never swallow silently. Do NOT write the notes anywhere else (such as the current project or workspace) instead; writing into the project is Phase 5b's decision, and only with the user's yes.
+Write the file (see Tool vocabulary). The directory is outside the project, so a sandboxed harness (e.g. Codex in `workspace-write` mode) may block the write — request approval or escalated permission for that one write if your harness supports it. If the write still fails (sandbox, permissions, disk full), dump the notes to the chat as fallback — never swallow silently — and end with one line that tells the user how to get the file saved next time, for the harness you are running in:
+
+- Codex CLI: "Start Codex with `codex --add-dir ~/.heropedia` and your next office hour saves its notes automatically."
+- Gemini CLI: "Start Gemini with `gemini --include-directories ~/.heropedia` and your next office hour saves its notes automatically."
+- Anything else: "Allow writes to `~/.heropedia/` and your next office hour saves its notes automatically."
+
+Also give the filename, so the user can save these notes by hand: `~/.heropedia/office-hours/<filename>`. Do NOT write the notes anywhere else (such as the current project or workspace) instead; writing into the project is Phase 5b's decision, and only with the user's yes.
 
 ### Phase 5b — Optional project copy
 
